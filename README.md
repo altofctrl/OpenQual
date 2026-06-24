@@ -4,9 +4,7 @@ A browser tool for qualitative coding of interview transcripts. It loads a Teams
 file or pasted text, lays it out by speaker, and lets you select spans of text, apply a
 tree of codes and subcodes, attach comments, edit the transcript with codes staying put,
 and export everything as JSON. The workflow follows f4analyse, but it runs entirely in
-the browser and there is no build step.
-
-Modelled on the design brief in `OpenSourceQualCodeWebApp` (akashic-nexus/bridge).
+the browser.
 
 ## Running it
 
@@ -43,13 +41,6 @@ ui/          h.js (Preact + htm), TranscriptView, CodeTree, ContextPanel, Settin
 io/          projectFile.js (JSON), refi.js and f4import.js (stubs for later)
 ```
 
-Code offsets (`start` and `length`) are scoped to a single speaker turn and measured in
-UTF-16 code units, the same units `String.prototype.slice` and DOM ranges use. Scoping
-them to a turn is what makes editing tractable: a change to one turn only touches the
-codings inside it, not every coding below it in the document.
-
-The view is Preact with htm, so the templates are plain tagged template literals and
-need no JSX compilation.
 
 ## API keys
 
@@ -63,14 +54,6 @@ browser to the provider, which means the key is visible to that origin and the r
 can be blocked by CORS. For anything beyond personal use, put the call behind a small
 proxy that holds the key and point the endpoint field at it. The proxy is deliberately
 not part of this repo.
-
-## Choices from the brief
-
-The brief left a few decisions open. This version uses the two-mode edit-and-remap
-approach rather than a live editor, keeps the stored format turn-scoped so a live editor
-could be added later without changing the JSON, uses Preact and htm for the view, shows
-timestamps but does not yet link them to an audio player, routes deleted coded spans to
-the unanchored tray, and treats the key proxy as a note here rather than shipping it.
 
 ## Not done yet
 
