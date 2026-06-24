@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OpenQual — qualitative transcript coding</title>
+  <meta name="description" content="Open-source, build-free browser tool for qualitative coding of interview transcripts." />
+  <link rel="stylesheet" href="./styles.css" />
+  <!-- Preload the entry module and the Preact bundle to warm DNS/TLS to esm.sh (section 10). -->
+  <link rel="modulepreload" href="./app.js" />
+  <link rel="modulepreload" href="https://esm.sh/preact@10.25.4" />
+  <link rel="modulepreload" href="https://esm.sh/preact@10.25.4/hooks" />
+</head>
+<body>
+  <div id="app"><div class="boot">Loading OpenQual…</div></div>
+  <script type="module" src="./app.js"></script>
+  <noscript>OpenQual needs JavaScript (ES modules) enabled.</noscript>
+</body>
+</html>
