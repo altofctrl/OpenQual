@@ -9,7 +9,14 @@ the browser.
 ## Running it
 
 Open `index.html` over any static server. There is nothing to compile and no install
-step; dependencies load from esm.sh at exact pinned versions. Load `sample.vtt` from the
+step; dependencies load from esm.sh at exact pinned versions. 
+
+### From the repo folder, pick one:
+```python3 -m http.server 8000      # then open http://localhost:8000```
+```npx serve                         # Node```
+```php -S localhost:8000```
+
+Load `sample.vtt` from the
 top bar to get a short two-speaker transcript to try.
 
 Hosted copy: https://research.vidalion.co/openqual/
