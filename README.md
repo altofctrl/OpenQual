@@ -12,9 +12,11 @@ Open `index.html` over any static server. There is nothing to compile and no ins
 step; dependencies load from esm.sh at exact pinned versions. 
 
 ### From the repo folder, pick one:
-```python3 -m http.server 8000      # then open http://localhost:8000```
-```npx serve                         # Node```
-```php -S localhost:8000```
+```
+python3 -m http.server 8000      # then open http://localhost:8000
+npx serve                         # Node
+php -S localhost:8000
+```
 
 Load `sample.vtt` from the
 top bar to get a short two-speaker transcript to try.
