@@ -6,6 +6,8 @@ tree of codes and subcodes, attach comments, edit the transcript with codes stay
 and export everything as JSON. The workflow follows f4analyse, but it runs entirely in
 the browser.
 
+![OpenQual coding an interview transcript: a code tree with frequencies on the left, the speaker-laid-out transcript with coded spans in the centre, and the document list and code memo on the right.](docs/screenshot.png)
+
 ## Running it
 
 Open `index.html` over any static server. There is nothing to compile and no install
