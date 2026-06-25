@@ -138,6 +138,22 @@ label.ctx-label { display: block; font-size: 12px; color: var(--muted); margin: 
 .warn { background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 8px; padding: 10px 12px; font-size: 12.5px; line-height: 1.5; }
 .paste-area { min-height: 220px; }
 
+/* backup hint: gentle, occasional toast (app.js BackupHint) */
+.backup-hint {
+  position: fixed; right: 16px; bottom: 16px; z-index: 90;
+  display: flex; align-items: center; gap: 10px;
+  max-width: min(420px, calc(100vw - 32px));
+  background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: var(--radius);
+  padding: 9px 11px; font-size: 12.5px; line-height: 1.4; color: var(--ink);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.14);
+  animation: bh-in 160ms ease-out;
+}
+@keyframes bh-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.backup-hint .bh-text { flex: 1; }
+.backup-hint .bh-go { border-color: var(--warn-line); background: #fff; }
+.backup-hint .bh-later { padding: 4px 7px; }
+@media (prefers-reduced-motion: reduce) { .backup-hint { animation: none; } }
+
 /* distribution */
 .distribution h2 { font-size: 15px; margin: 18px 0 8px; }
 table.dist { border-collapse: collapse; width: 100%; max-width: 560px; }

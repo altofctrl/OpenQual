@@ -25,6 +25,15 @@ top bar to get a short two-speaker transcript to try.
 
 Hosted copy: https://research.vidalion.co/openqual/
 
+## Your data and backups
+
+Everything is autosaved to your browser's `localStorage` and never leaves your machine.
+That also means your work is tied to this one browser: clearing site data, using a
+different browser or device, or private-browsing mode will lose it. **Use `Export` from
+the top bar to download a `.json` backup** (and `Import` to restore it) — the app shows
+an occasional, dismissible reminder to do so. Backups are also how you move a project
+between machines. Deploying a new version of the site never touches your stored work.
+
 ## What works
 
 - Teams VTT import, and a pasted-text path that sends rough text to an LLM and gets back

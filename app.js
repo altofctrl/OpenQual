@@ -81,6 +81,38 @@ function PasteModal({ open, onClose }) {
     </div>`;
 }
 
+// Gentle, occasional nudge to download a JSON backup. Work is autosaved to this
+// browser's localStorage only, so a cleared cache / different device loses it. The
+// hint stays out of the way: it appears at most once every REMIND_MS of elapsed time,
+// only when there is unexported work, and "Later" snoozes it for another interval.
+const REMIND_MS = 12 * 60 * 1000;
+
+function BackupHint() {
+  const { project, lastExportedAt } = useStore();
+  const [sessionStart] = useState(() => Date.now());
+  const [snoozedAt, setSnoozedAt] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 60 * 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const hasWork = project.codings.length > 0 || project.documents.length > 0 || project.codes.length > 0;
+  const updatedAt = Date.parse(project.project.updatedAt) || 0;
+  const exportedAt = lastExportedAt ? Date.parse(lastExportedAt) : 0;
+  const unexported = updatedAt > exportedAt; // changed since the last download (or never exported)
+  const since = Math.max(exportedAt, snoozedAt, sessionStart);
+  if (!hasWork || !unexported || now - since < REMIND_MS) return null;
+
+  return html`
+    <div class="backup-hint" role="status">
+      <span class="bh-text">Your work lives in this browser only. <strong>Export a backup?</strong></span>
+      <button class="bh-go" onClick=${() => actions.exportProject()}>Export</button>
+      <button class="ghost bh-later" title="remind me later" onClick=${() => setSnoozedAt(Date.now())}>Later</button>
+    </div>`;
+}
+
 function App() {
   const state = useStore();
   const { project, ui, settings } = state;
@@ -121,6 +153,7 @@ function App() {
       <${SpanPopover} data=${popover} project=${project} onClose=${() => setPopover(null)} />
       <${PasteModal} open=${pasteOpen} onClose=${() => setPasteOpen(false)} />
       ${ui.settingsOpen ? html`<${Settings} settings=${settings} onClose=${() => actions.closeSettings()} />` : null}
+      <${BackupHint} />
     </div>`;
 }
 

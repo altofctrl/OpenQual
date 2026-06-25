@@ -14,6 +14,7 @@ import { downloadProject, loadProjectFromFile, serialiseProject } from "./io/pro
 
 const PROJECT_KEY = "openqual.project";
 const SETTINGS_KEY = "openqual.settings";
+const EXPORT_KEY = "openqual.lastExportedAt";
 
 const DEFAULT_SETTINGS = {
   scope: "session", // "session" | "local" — where the secrets live (section 9)
@@ -59,6 +60,12 @@ function loadAutosaved() {
   return null;
 }
 
+// When the user last downloaded a JSON backup. Autosave keeps work in this browser
+// only; the backup hint (app.js) uses this to nudge for an off-machine copy.
+function loadLastExportedAt() {
+  try { return localStorage.getItem(EXPORT_KEY); } catch (_) { return null; }
+}
+
 // ---- store ---------------------------------------------------------------------
 
 const store = {
@@ -81,6 +88,7 @@ const store = {
       status: "",               // transient status line (e.g. "Ingesting…")
     },
     savedAt: null,
+    lastExportedAt: loadLastExportedAt(),
   },
   listeners: new Set(),
 
@@ -350,7 +358,13 @@ export const actions = {
   setFilterCode(codeId) { store.patchUi({ filterCodeId: codeId }); },
 
   // ---- project IO ----
-  exportProject() { downloadProject(store.state.project); },
+  exportProject() {
+    downloadProject(store.state.project);
+    const at = new Date().toISOString();
+    try { localStorage.setItem(EXPORT_KEY, at); } catch (_) { /* ignore */ }
+    store.state = { ...store.state, lastExportedAt: at };
+    store.emit();
+  },
   async importProjectFile(file) {
     const res = await loadProjectFromFile(file);
     if (!res.ok) { alert(`Could not load project:\n${res.errors.join("\n")}`); return; }
