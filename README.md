@@ -49,6 +49,16 @@ between machines. Deploying a new version of the site never touches your stored 
 - JSON export and import, plus an autosave to the browser's localStorage.
 - A small distribution view: code counts and how often two codes land in the same turn.
 
+## Changelog
+
+### Unreleased
+- Delete a whole turn from the transcript. Each turn now has a trash button next to the
+  edit button; use it to drop turns the speech-to-text got wrong. The codes and comments
+  on that turn are removed with it.
+- Mobile layout. One column, the transcript fills the screen, and there is no sideways
+  scroll. Codes and notes open as bottom sheets from a bottom tab bar, and the top
+  toolbar folds into a menu so the bar stays one line.
+
 ## How it's put together
 
 ```

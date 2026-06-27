@@ -23,6 +23,11 @@ function offsetWithin(root, node, nodeOffset) {
   return range.toString().length;
 }
 
+// Inline SVG icons for per-turn actions, so they render without an emoji font and read
+// as real affordances on mobile (always visible there; hover-revealed on desktop).
+const iconEdit = html`<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>`;
+const iconTrash = html`<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14"/></svg>`;
+
 function codeColor(codes, id) { return codes.find((c) => c.id === id)?.color || "#888"; }
 function codeName(codes, id) { return codes.find((c) => c.id === id)?.name || "?"; }
 
@@ -53,7 +58,8 @@ function Segment({ seg, doc, project, ui }) {
     return html`
       <div class="segment editing">
         <div class="seg-meta"><span class="speaker">${seg.speaker}</span><span class="time">${fmtTime(seg.tStart)}</span>
-          <span class="edit-badge">editing — raw text</span></div>
+          <span class="edit-badge">editing — raw text</span>
+          <button class="del-toggle" title="delete this turn" onClick=${() => actions.deleteSegment(seg.id)}>${iconTrash}</button></div>
         <textarea class="seg-edit" value=${draft} autofocus
           onInput=${(e) => setDraft(e.target.value)}
           onBlur=${() => actions.commitSegmentEdit(seg.id, draft)}
@@ -71,7 +77,8 @@ function Segment({ seg, doc, project, ui }) {
       <div class="seg-meta">
         <span class="speaker">${seg.speaker}</span>
         <span class="time">${fmtTime(seg.tStart)}</span>
-        <button class="edit-toggle" title="edit this turn's text" onClick=${() => { setDraft(seg.text); actions.enterEdit(seg.id); }}>✎</button>
+        <button class="edit-toggle" title="edit this turn's text" onClick=${() => { setDraft(seg.text); actions.enterEdit(seg.id); }}>${iconEdit}</button>
+        <button class="del-toggle" title="delete this turn (e.g. an STT mishearing)" onClick=${() => actions.deleteSegment(seg.id)}>${iconTrash}</button>
       </div>
       <div class="seg-text" ref=${rootRef} onMouseUp=${onMouseUp}>
         ${pieces.map((p, i) => {

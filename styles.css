@@ -47,6 +47,9 @@ label.ctx-label { display: block; font-size: 12px; color: var(--muted); margin: 
 .brand .sub { font-weight: 400; font-size: 11px; color: var(--muted); margin-left: 6px; }
 .title-input { flex: 0 1 240px; font-weight: 600; }
 .tb-group { display: flex; gap: 5px; }
+.tb-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.tb-menu { display: none; }       /* hamburger: mobile only */
+.topbar button svg { display: block; }
 .savebadge { margin-left: auto; font-size: 12px; }
 .savebadge .dim { color: var(--muted); }
 .savebadge .busy { color: var(--accent); }
@@ -79,8 +82,10 @@ label.ctx-label { display: block; font-size: 12px; color: var(--muted); margin: 
 .seg-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); margin-bottom: 2px; }
 .speaker { font-weight: 700; color: #444; }
 .time { font-variant-numeric: tabular-nums; }
-.edit-toggle { padding: 0 5px; opacity: 0; }
-.segment:hover .edit-toggle { opacity: 1; }
+.edit-toggle, .del-toggle { padding: 0 5px; opacity: 0; background: none; border-color: transparent; }
+.segment:hover .edit-toggle, .segment:hover .del-toggle, .segment.editing .del-toggle { opacity: 1; }
+.del-toggle { font-size: 12px; }
+.del-toggle:hover { background: #fde8e8; border-color: #f0caca; }
 .edit-badge { color: #b8860b; }
 .seg-text { white-space: pre-wrap; cursor: text; }
 .seg-text .coded { cursor: pointer; border-radius: 2px; }
@@ -154,8 +159,111 @@ label.ctx-label { display: block; font-size: 12px; color: var(--muted); margin: 
 .backup-hint .bh-later { padding: 4px 7px; }
 @media (prefers-reduced-motion: reduce) { .backup-hint { animation: none; } }
 
+/* mobile bottom bar + sheet — hidden on desktop, shown in the mobile media query */
+.mobilebar { display: none; }
+.sheet-backdrop { display: none; }
+
 /* distribution */
 .distribution h2 { font-size: 15px; margin: 18px 0 8px; }
 table.dist { border-collapse: collapse; width: 100%; max-width: 560px; }
 table.dist th, table.dist td { text-align: left; padding: 5px 10px; border-bottom: 1px solid var(--line); font-size: 13px; }
 table.dist th { color: var(--muted); font-weight: 600; }
+
+/* ---- mobile (<= 720px): single vertical column, no horizontal scroll ---------- */
+/* The transcript gets the whole screen; codes and notes move into bottom sheets
+   reached from a fixed bottom tab bar. The three-column desktop grid would force
+   ~880px of width and push the transcript off-screen, so it is collapsed here. */
+@media (max-width: 720px) {
+  html, body { overflow-x: hidden; }
+
+  /* Slim, single-row app bar: brand · title · hamburger. Everything else folds into
+     a dropdown so the bar stays one line and the transcript keeps the screen. */
+  .topbar { position: relative; gap: 8px; padding: 8px 12px; flex-wrap: nowrap; min-height: 52px; }
+  .brand { font-size: 16px; white-space: nowrap; }
+  .brand .sub { display: none; }
+  .title-input { flex: 1 1 auto; min-width: 0; border-color: transparent; background: transparent; font-size: 15px; padding: 4px 2px; }
+  .title-input:focus { border-color: var(--line); background: #fff; }
+  .savebadge { display: none; }                         /* status still shows in the menu area / desktop */
+  .tb-menu { display: inline-flex; align-items: center; justify-content: center; padding: 7px; flex: none; }
+
+  /* Action groups become a dropdown panel under the bar. */
+  .tb-actions {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 70;
+    flex-direction: column; align-items: stretch; gap: 8px;
+    padding: 10px 12px 14px; background: var(--panel);
+    border-bottom: 1px solid var(--line); box-shadow: 0 10px 28px rgba(0,0,0,0.14);
+    display: none;
+  }
+  .tb-actions.open { display: flex; }
+  .tb-actions .tb-group { width: 100%; }
+  .tb-actions .tb-group button { flex: 1; padding: 10px; }
+  .tb-view { display: none; }            /* distribution lives in the bottom bar; focus/font drop on mobile */
+
+  /* One column: only the transcript. Side panels become sheets. */
+  .columns { grid-template-columns: 1fr; }
+  .col-left, .col-right { display: none; }
+  .col-centre { -webkit-overflow-scrolling: touch; }
+
+  /* Roomier transcript: edge-to-edge, generous tap targets, space for the bar. */
+  .transcript { padding: 14px 16px calc(84px + env(safe-area-inset-bottom)); max-width: none; }
+  .segment { margin-bottom: 20px; }
+  .seg-meta { gap: 8px; }
+  .seg-meta .time { margin-right: auto; }                /* push actions to the right edge */
+  .edit-toggle, .del-toggle {
+    opacity: 1; padding: 6px; border: 1px solid var(--line); border-radius: 8px;
+    color: var(--muted); display: inline-flex;
+  }
+  .filter-bar { flex-wrap: wrap; }
+
+  /* Fixed bottom tab bar — icon over label, like a native app. */
+  .mobilebar {
+    display: flex; gap: 4px;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 80;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    background: rgba(255,255,255,0.92); backdrop-filter: blur(8px);
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.05);
+  }
+  .mobilebar button {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 7px 4px; font-weight: 600; font-size: 11px;
+    border: none; background: none; color: var(--muted); border-radius: 10px;
+  }
+  .mobilebar button.on { color: var(--accent); background: var(--accent-soft); }
+  .mobilebar button:hover { background: #f1f1ef; }
+  .mobilebar button.on:hover { background: var(--accent-soft); }
+
+  /* Bottom sheet for a side panel. */
+  .sheet-backdrop {
+    display: block; position: fixed; inset: 0; z-index: 95;
+    background: rgba(0,0,0,0.35);
+  }
+  .sheet {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    max-height: 80vh; display: flex; flex-direction: column;
+    background: var(--panel); border-radius: 16px 16px 0 0;
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.28);
+    animation: sheet-up 180ms ease-out;
+  }
+  @keyframes sheet-up { from { transform: translateY(100%); } to { transform: none; } }
+  .sheet-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px 8px; border-bottom: 1px solid var(--line);
+    position: relative;
+  }
+  .sheet-head::before {
+    content: ""; position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+    width: 36px; height: 4px; border-radius: 2px; background: var(--line);
+  }
+  .sheet-title { font-weight: 700; font-size: 15px; }
+  .sheet-head .ghost { padding: 6px 10px; }
+  .sheet-body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .sheet-body .panel-head { position: static; }
+
+  /* Bigger code rows + visible row actions inside the sheet (no hover on touch). */
+  .sheet-body .coderow { padding: 8px 6px; }
+  .sheet-body .crow-actions { display: flex; }
+  .sheet-body .crow-actions button { padding: 4px 7px; font-size: 12px; }
+
+  @media (prefers-reduced-motion: reduce) { .sheet { animation: none; } }
+}

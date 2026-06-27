@@ -12,8 +12,22 @@ import {
   TranscriptView, SelectionToolbar, SpanPopover, registerToolbar, registerPopover,
 } from "./ui/TranscriptView.js";
 
+// Inline SVG (stroke=currentColor) so glyphs render without an emoji font and inherit
+// button colour. Kept tiny and local to the bar that uses them.
+const menuIcon = html`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>`;
+
+// Bottom-bar tab icons (24px, stroked). One per destination.
+const ico = (children) => html`<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${children}</svg>`;
+const tabIcons = {
+  codes: ico(html`<path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10z"/><circle cx="7.5" cy="7.5" r="1.3"/>`),
+  chart: ico(html`<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>`),
+  transcript: ico(html`<path d="M4 6h16M4 12h16M4 18h10"/>`),
+  notes: ico(html`<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/>`),
+};
+
 function TopBar({ project, ui, settings }) {
   const saved = useStoreSavedLabel();
+  const [menuOpen, setMenuOpen] = useState(false);
   const pick = (accept, cb) => {
     const input = document.createElement("input");
     input.type = "file"; input.accept = accept;
@@ -25,22 +39,25 @@ function TopBar({ project, ui, settings }) {
       <div class="brand">OpenQual<span class="sub">qualitative coding</span></div>
       <input class="title-input" value=${project.project.title}
         onInput=${(e) => actions.store.setProject({ ...project, project: { ...project.project, title: e.target.value } })} />
-      <div class="tb-group">
-        <button onClick=${() => pick(".vtt,text/vtt", (f) => actions.ingestVttFile(f))}>Load VTT</button>
-        <button onClick=${() => openPaste()}>Paste text</button>
-      </div>
-      <div class="tb-group">
-        <button onClick=${() => actions.setView(ui.view === "distribution" ? "transcript" : "distribution")}>
-          ${ui.view === "distribution" ? "Transcript" : "Distribution"}</button>
-        <button onClick=${() => actions.toggleHidePanels()} title="focus mode">${ui.hidePanels ? "Show panels" : "Hide panels"}</button>
-        <button onClick=${() => actions.setFontSize(ui.fontSize - 1)} title="smaller text">A−</button>
-        <button onClick=${() => actions.setFontSize(ui.fontSize + 1)} title="larger text">A+</button>
-      </div>
-      <div class="tb-group">
-        <button onClick=${() => actions.exportProject()}>Export</button>
-        <button onClick=${() => pick(".json,application/json", (f) => actions.importProjectFile(f))}>Import</button>
-        <button onClick=${() => actions.newProject()}>New</button>
-        <button onClick=${() => actions.openSettings()} title="API keys & providers">⚙</button>
+      <button class="tb-menu" title="menu" aria-label="menu" onClick=${() => setMenuOpen((o) => !o)}>${menuIcon}</button>
+      <div class="tb-actions ${menuOpen ? "open" : ""}" onClick=${() => setMenuOpen(false)}>
+        <div class="tb-group">
+          <button onClick=${() => pick(".vtt,text/vtt", (f) => actions.ingestVttFile(f))}>Load VTT</button>
+          <button onClick=${() => openPaste()}>Paste text</button>
+        </div>
+        <div class="tb-group tb-view">
+          <button onClick=${() => actions.setView(ui.view === "distribution" ? "transcript" : "distribution")}>
+            ${ui.view === "distribution" ? "Transcript" : "Distribution"}</button>
+          <button onClick=${() => actions.toggleHidePanels()} title="focus mode">${ui.hidePanels ? "Show panels" : "Hide panels"}</button>
+          <button onClick=${() => actions.setFontSize(ui.fontSize - 1)} title="smaller text">A−</button>
+          <button onClick=${() => actions.setFontSize(ui.fontSize + 1)} title="larger text">A+</button>
+        </div>
+        <div class="tb-group">
+          <button onClick=${() => actions.exportProject()}>Export</button>
+          <button onClick=${() => pick(".json,application/json", (f) => actions.importProjectFile(f))}>Import</button>
+          <button onClick=${() => actions.newProject()}>New</button>
+          <button onClick=${() => actions.openSettings()} title="API keys & providers">⚙ Settings</button>
+        </div>
       </div>
       <div class="savebadge" title=${ui.status || ""}>
         ${ui.status ? html`<span class="busy">${ui.status}</span>` : saved}
@@ -148,6 +165,33 @@ function App() {
         </section>
         ${!ui.hidePanels ? html`<aside class="col-right"><${ContextPanel} project=${project} ui=${ui} /></aside>` : null}
       </main>
+
+      ${/* Mobile-only: a bottom tab bar opens the codes / notes panels as sheets so the
+            transcript keeps the full screen. Hidden on desktop via CSS. */ null}
+      <nav class="mobilebar">
+        <button class=${ui.mobilePanel === "codes" ? "on" : ""} onClick=${() => actions.openMobilePanel("codes")}>
+          ${tabIcons.codes}<span>Codes</span></button>
+        <button class=${ui.view === "distribution" && !ui.mobilePanel ? "on" : ""}
+          onClick=${() => actions.setView(ui.view === "distribution" ? "transcript" : "distribution")}>
+          ${ui.view === "distribution" ? tabIcons.transcript : tabIcons.chart}
+          <span>${ui.view === "distribution" ? "Transcript" : "Chart"}</span></button>
+        <button class=${ui.mobilePanel === "context" ? "on" : ""} onClick=${() => actions.openMobilePanel("context")}>
+          ${tabIcons.notes}<span>Notes</span></button>
+      </nav>
+      ${ui.mobilePanel ? html`
+        <div class="sheet-backdrop" onMouseDown=${() => actions.closeMobilePanel()}>
+          <div class="sheet" onMouseDown=${(e) => e.stopPropagation()}>
+            <div class="sheet-head">
+              <span class="sheet-title">${ui.mobilePanel === "codes" ? "Codes" : "Notes & documents"}</span>
+              <button class="ghost" onClick=${() => actions.closeMobilePanel()}>✕ Close</button>
+            </div>
+            <div class="sheet-body">
+              ${ui.mobilePanel === "codes"
+                ? html`<${CodeTree} project=${project} ui=${ui} />`
+                : html`<${ContextPanel} project=${project} ui=${ui} />`}
+            </div>
+          </div>
+        </div>` : null}
 
       <${SelectionToolbar} data=${toolbar} project=${project} onClose=${() => setToolbar(null)} />
       <${SpanPopover} data=${popover} project=${project} onClose=${() => setPopover(null)} />

@@ -85,6 +85,7 @@ const store = {
       fontSize: 16,
       view: "transcript",       // "transcript" | "distribution"
       settingsOpen: false,
+      mobilePanel: null,        // null | "codes" | "context" — which bottom sheet is open (mobile)
       status: "",               // transient status line (e.g. "Ingesting…")
     },
     savedAt: null,
@@ -333,6 +334,26 @@ export const actions = {
     if (orphans.length) store.patchUi({ status: `${orphans.length} coding(s) became unanchored after the edit.` });
   },
 
+  // Delete an entire turn (e.g. an STT mishearing or a turn captured in error). Its
+  // codings, comments, and any unanchored remnants pointing at it go too — they have no
+  // meaning without the text. Distinct from editing, which tries to preserve anchors.
+  deleteSegment(segmentId) {
+    const p = store.state.project;
+    const doc = p.documents.find((d) => d.segments.some((s) => s.id === segmentId));
+    if (!doc) return;
+    if (!confirm("Delete this turn? Its text and any codes or comments on it are removed.")) return;
+    const documents = p.documents.map((d) =>
+      d.id !== doc.id ? d : { ...d, segments: d.segments.filter((s) => s.id !== segmentId) });
+    store.setProject({
+      ...p,
+      documents,
+      codings: p.codings.filter((c) => c.segmentId !== segmentId),
+      comments: p.comments.filter((c) => c.segmentId !== segmentId),
+      unanchored: (p.unanchored || []).filter((o) => o.segmentId !== segmentId),
+    });
+    if (store.state.ui.editingSegmentId === segmentId) store.patchUi({ editingSegmentId: null });
+  },
+
   // Reattach an unanchored coding to the current selection, or discard it.
   reattachOrphan(orphanId, selection) {
     const p = store.state.project;
@@ -380,5 +401,9 @@ export const actions = {
   // ---- view chrome ----
   toggleHidePanels() { store.patchUi({ hidePanels: !store.state.ui.hidePanels }); },
   setFontSize(px) { store.patchUi({ fontSize: Math.max(11, Math.min(28, px)) }); },
-  setView(view) { store.patchUi({ view }); },
+  setView(view) { store.patchUi({ view, mobilePanel: null }); },
+
+  // ---- mobile bottom sheets (codes / context) ----
+  openMobilePanel(name) { store.patchUi({ mobilePanel: store.state.ui.mobilePanel === name ? null : name }); },
+  closeMobilePanel() { store.patchUi({ mobilePanel: null }); },
 };
