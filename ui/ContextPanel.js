@@ -5,6 +5,51 @@
 
 import { html } from "./h.js";
 import { actions } from "../store.js";
+import { fmtTime } from "./TranscriptView.js";
+
+// "Isolate" results: the passages coded with the chosen code, listed in the side panel
+// (the transcript stays visible in the centre). Clicking a passage jumps to its turn.
+function IsolatedPanel({ project, ui }) {
+  if (!ui.filterCodeId) return null;
+  const code = project.codes.find((c) => c.id === ui.filterCodeId);
+  const hits = project.codings.filter((c) => c.codeId === ui.filterCodeId);
+  const segments = project.documents.flatMap((d) => d.segments);
+
+  const jump = (segId) => {
+    const owner = project.documents.find((d) => d.segments.some((s) => s.id === segId));
+    if (owner && ui.activeDocumentId && ui.activeDocumentId !== owner.id) actions.setActiveDocument(owner.id);
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 720px)").matches) actions.closeMobilePanel();
+    setTimeout(() => {
+      const el = document.getElementById(`seg-${segId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("seg-flash");
+        setTimeout(() => el.classList.remove("seg-flash"), 1200);
+      }
+    }, 80);
+  };
+
+  return html`
+    <div class="isolated">
+      <div class="panel-head">
+        <span><span class="pop-dot" style=${{ background: code?.color || "#bbb" }}></span> Isolated · ${code?.name || "?"} (${hits.length})</span>
+        <button class="ghost" title="clear isolation" onClick=${() => actions.setFilterCode(null)}>✕</button>
+      </div>
+      ${hits.length === 0
+        ? html`<p class="empty">No passages use this code yet. Select transcript text and click the code to apply it.</p>`
+        : null}
+      <div class="iso-list">
+        ${hits.map((cd) => {
+          const seg = segments.find((s) => s.id === cd.segmentId);
+          if (!seg) return null;
+          return html`<div class="iso-item" key=${cd.id} onClick=${() => jump(seg.id)} title="jump to this turn">
+            <div class="iso-meta">${seg.speaker} · ${fmtTime(seg.tStart)}</div>
+            <blockquote>${seg.text.slice(cd.start, cd.start + cd.length)}</blockquote>
+          </div>`;
+        })}
+      </div>
+    </div>`;
+}
 
 function DocList({ project, ui }) {
   return html`
@@ -89,6 +134,7 @@ export function ContextPanel({ project, ui }) {
 
   return html`
     <div class="context">
+      <${IsolatedPanel} project=${project} ui=${ui} />
       <${DocList} project=${project} ui=${ui} />
       <div class="ctx-tabs">
         <button class=${ui.contextMode === "code" ? "on" : ""} onClick=${() => actions.store.patchUi({ contextMode: "code" })}>Code memo</button>

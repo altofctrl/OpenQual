@@ -9,7 +9,7 @@ import { ContextPanel } from "./ui/ContextPanel.js";
 import { Settings } from "./ui/Settings.js";
 import { Distribution } from "./ui/Distribution.js";
 import {
-  TranscriptView, SelectionToolbar, SpanPopover, registerToolbar, registerPopover,
+  TranscriptView, SelectionToolbar, SpanPopover, registerToolbar, registerPopover, clearLiveSelection,
 } from "./ui/TranscriptView.js";
 
 // Inline SVG (stroke=currentColor) so glyphs render without an emoji font and inherit
@@ -258,7 +258,7 @@ function App() {
           </div>
         </div>` : null}
 
-      <${SelectionToolbar} data=${toolbar} project=${project} onClose=${() => setToolbar(null)} />
+      <${SelectionToolbar} data=${toolbar} project=${project} onClose=${() => clearLiveSelection()} />
       <${SpanPopover} data=${popover} project=${project} onClose=${() => setPopover(null)} />
       <${PasteModal} open=${pasteOpen} onClose=${() => setPasteOpen(false)} />
       ${ui.settingsOpen ? html`<${Settings} settings=${settings} onClose=${() => actions.closeSettings()} />` : null}

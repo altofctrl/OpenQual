@@ -8,7 +8,7 @@ import { html, useState, useRef, useMemo } from "./h.js";
 import { actions } from "../store.js";
 import { buildBreakpoints, codingsForSegment, commentsForSegment } from "../model/codings.js";
 
-function fmtTime(t) {
+export function fmtTime(t) {
   if (t == null) return "";
   const s = Math.floor(t % 60), m = Math.floor((t / 60) % 60), h = Math.floor(t / 3600);
   const mm = String(m).padStart(2, "0"), ss = String(s).padStart(2, "0");
@@ -28,8 +28,40 @@ function offsetWithin(root, node, nodeOffset) {
 const iconEdit = html`<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>`;
 const iconTrash = html`<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14"/></svg>`;
 
+const iconUpload = html`<svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M12 16V3"/><path d="M7 8l5-5 5 5"/></svg>`;
+
 function codeColor(codes, id) { return codes.find((c) => c.id === id)?.color || "#888"; }
 function codeName(codes, id) { return codes.find((c) => c.id === id)?.name || "?"; }
+
+// A combined drag-and-drop / click-to-browse target for the empty state. Accepts a .vtt
+// transcript or an exported .json project and routes each to the right ingest path.
+function Dropzone() {
+  const [over, setOver] = useState(false);
+  const handle = (files) => {
+    for (const f of [...files]) {
+      const n = f.name.toLowerCase();
+      if (n.endsWith(".vtt")) actions.ingestVttFile(f);
+      else if (n.endsWith(".json")) actions.importProjectFile(f);
+      else alert(`Unsupported file "${f.name}". Drop a .vtt transcript or a .json project file.`);
+    }
+  };
+  const browse = () => {
+    const input = document.createElement("input");
+    input.type = "file"; input.accept = ".vtt,text/vtt,.json,application/json"; input.multiple = true;
+    input.onchange = () => input.files.length && handle(input.files);
+    input.click();
+  };
+  return html`
+    <div class="dropzone ${over ? "over" : ""}" role="button" tabindex="0" onClick=${browse}
+      onDragOver=${(e) => { e.preventDefault(); setOver(true); }}
+      onDragLeave=${(e) => { e.preventDefault(); setOver(false); }}
+      onDrop=${(e) => { e.preventDefault(); setOver(false); handle(e.dataTransfer.files); }}>
+      <div class="dz-icon">${iconUpload}</div>
+      <h2>Drop a transcript to start</h2>
+      <p>Drag a <b>.vtt</b> file (or an exported <b>.json</b> project) here, or <b>click to browse</b>.</p>
+      <p class="dz-alt">Rough notes instead? Use <b>Paste text</b> in the menu to turn them into speaker turns with the LLM.</p>
+    </div>`;
+}
 
 function Segment({ seg, doc, project, ui }) {
   const rootRef = useRef(null);
@@ -73,7 +105,7 @@ function Segment({ seg, doc, project, ui }) {
   }
 
   return html`
-    <div class="segment">
+    <div class="segment" id=${`seg-${seg.id}`}>
       <div class="seg-meta">
         <span class="speaker">${seg.speaker}</span>
         <span class="time">${fmtTime(seg.tStart)}</span>
@@ -107,6 +139,11 @@ function showToolbar(rect, selection) {
   if (toolbarSetter) toolbarSetter({ x: rect.left, y: rect.bottom + window.scrollY + 6, selection });
 }
 
+// The most recent text selection, kept alive only while the selection toolbar is up.
+// The code tree reads this so clicking a code name applies it to the selected text.
+export function getLiveSelection() { return window.__openqualSelection || null; }
+export function clearLiveSelection() { window.__openqualSelection = null; if (toolbarSetter) toolbarSetter(null); }
+
 // --- coded-span popover (list codes, remove, comment) ---------------------------
 let popoverSetter = null;
 export function registerPopover(setter) { popoverSetter = setter; }
@@ -129,6 +166,7 @@ export function SelectionToolbar({ data, project, onClose }) {
           </select>`}
       <button title="create a code and apply it" onClick=${() => { const name = prompt("New code name:"); if (name) { const c = actions.addCode(name, null); actions.applyCode(selection, c.id); } onClose(); }}>＋ Code</button>
       <button title="add a span comment" onClick=${() => { actions.addComment(selection, ""); onClose(); }}>💬 Comment</button>
+      ${project.codes.length > 0 ? html`<span class="tb-hint">or click a code →</span>` : null}
       <button class="ghost" onClick=${onClose}>✕</button>
     </div>`;
 }
@@ -159,39 +197,13 @@ export function SpanPopover({ data, project, onClose }) {
 export function TranscriptView({ project, ui, doc: docProp }) {
   const doc = docProp || actions.activeDoc();
   if (!doc) {
-    return html`<div class="transcript empty-state">
-      <h2>No transcript loaded</h2>
-      <p>Use <b>Load VTT</b> for a Teams transcript, or <b>Paste text</b> to normalise rough text with the LLM.</p>
-    </div>`;
+    return html`<div class="transcript empty-state"><${Dropzone} /></div>`;
   }
 
-  // Code-centric view (section 6): filter to segments containing the active code and
-  // lift coded passages into a list while still allowing a jump back to the full turn.
-  if (ui.filterCodeId) {
-    const code = project.codes.find((c) => c.id === ui.filterCodeId);
-    const hits = project.codings.filter((c) => c.codeId === ui.filterCodeId);
-    return html`
-      <div class="transcript" style=${{ fontSize: ui.fontSize }}>
-        <div class="filter-bar">
-          Showing passages coded <b style=${{ color: code?.color }}>${code?.name}</b> (${hits.length})
-          <button class="ghost" onClick=${() => actions.setFilterCode(null)}>← back to full transcript</button>
-        </div>
-        ${hits.length === 0 ? html`<p class="empty">No passages use this code yet.</p>` : null}
-        ${hits.map((cd) => {
-          const seg = doc.segments.find((s) => s.id === cd.segmentId)
-            || project.documents.flatMap((d) => d.segments).find((s) => s.id === cd.segmentId);
-          if (!seg) return null;
-          return html`<div class="lifted" key=${cd.id}>
-            <div class="lifted-meta">${seg.speaker} · ${fmtTime(seg.tStart)}</div>
-            <blockquote>${seg.text.slice(cd.start, cd.start + cd.length)}</blockquote>
-            <button class="ghost" onClick=${() => actions.setFilterCode(null)}>jump to turn</button>
-          </div>`;
-        })}
-      </div>`;
-  }
-
+  // Isolating a code (the ⤓ button in the code tree) no longer takes over the centre —
+  // its passages are listed in the right-hand panel so the transcript stays in view.
   return html`
-    <div class="transcript" style=${{ fontSize: ui.fontSize }} onMouseDown=${() => { if (toolbarSetter) toolbarSetter(null); if (popoverSetter) popoverSetter(null); }}>
+    <div class="transcript" style=${{ fontSize: ui.fontSize }} onMouseDown=${() => { clearLiveSelection(); if (popoverSetter) popoverSetter(null); }}>
       ${doc.segments.map((seg) => html`<${Segment} key=${seg.id} seg=${seg} doc=${doc} project=${project} ui=${ui} />`)}
     </div>`;
 }

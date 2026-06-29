@@ -125,11 +125,28 @@ label.ctx-label { display: block; font-size: 12px; color: var(--muted); margin: 
 .seg-edit-actions { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
 .seg-edit-actions .hint { font-size: 11px; color: var(--muted); }
 
-/* filter / lifted passages (code-centric view) */
-.filter-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
-.lifted { border-left: 3px solid var(--line); padding: 4px 0 4px 12px; margin-bottom: 12px; }
-.lifted-meta { font-size: 12px; color: var(--muted); }
-.lifted blockquote { margin: 4px 0; }
+/* drag-and-drop / click-to-browse empty state */
+.transcript.empty-state { display: flex; height: 100%; }
+.dropzone { margin: auto; width: min(560px, 92%); text-align: center; padding: 40px 28px; border: 2px dashed var(--line); border-radius: 14px; background: var(--panel); cursor: pointer; color: var(--ink); transition: border-color 120ms, background 120ms; }
+.dropzone:hover { border-color: #c2c2bd; }
+.dropzone.over { border-color: var(--accent); background: var(--accent-soft); }
+.dropzone .dz-icon { color: var(--accent); margin-bottom: 8px; }
+.dropzone h2 { margin: 4px 0 8px; font-size: 18px; }
+.dropzone p { color: var(--muted); margin: 6px 0; }
+.dropzone .dz-alt { font-size: 12.5px; margin-top: 14px; }
+
+/* isolate results in the side panel (code-centric view) */
+.isolated { border-bottom: 1px solid var(--line); background: #fbfbfa; }
+.iso-list { max-height: 42vh; overflow-y: auto; }
+.iso-item { padding: 7px 12px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.iso-item:hover { background: var(--accent-soft); }
+.iso-meta { font-size: 11.5px; color: var(--muted); }
+.iso-item blockquote { margin: 3px 0 0; font-style: italic; font-size: 13px; }
+
+/* flash a turn when jumped to from the isolate list */
+.seg-flash { animation: seg-flash 1.2s ease-out; }
+@keyframes seg-flash { 0% { background: var(--accent-soft); } 100% { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { .seg-flash { animation: none; } }
 
 /* context panel */
 .doclist { border-bottom: 1px solid var(--line); }
@@ -156,6 +173,7 @@ label.ctx-label { display: block; font-size: 12px; color: var(--muted); margin: 
 .floating { position: absolute; z-index: 50; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 6px 24px rgba(0,0,0,0.14); padding: 6px; }
 .toolbar { display: flex; align-items: center; gap: 6px; }
 .tb-label { font-size: 12px; color: var(--muted); }
+.tb-hint { font-size: 11px; color: var(--accent); white-space: nowrap; }
 .popover { min-width: 150px; }
 .pop-row { display: flex; align-items: center; gap: 7px; padding: 3px 4px; }
 .pop-row .pop-name { flex: 1; cursor: pointer; font-size: 13px; }

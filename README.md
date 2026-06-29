@@ -51,7 +51,14 @@ between machines. Deploying a new version of the site never touches your stored 
 
 ## Changelog
 
-### 2026-06-29 (later)
+### 2026-06-29
+- Apply a code by clicking it. Select text in the transcript, then click a code in the
+  Codes list to code the selection (the floating toolbar still works too).
+- Isolate a code into the side panel. The isolate button (the down arrow on a code) now
+  lists that code's passages in the right-hand panel and leaves the transcript in view;
+  clicking a passage jumps to its turn. On a phone the list opens in the Notes sheet.
+- Drag-and-drop file loading. The empty screen is now a drop area: drag a `.vtt` or `.json`
+  onto it, or click it to browse.
 - Autosave to a local file. Pick a `.json` once with "Autosave to file" and every change
   is written straight to that file on disk, not just the browser. "Open file" opens an
   existing project and keeps saving back into it. Reopen the site and it reconnects to the
@@ -62,8 +69,6 @@ between machines. Deploying a new version of the site never touches your stored 
   the transcript; switch between them, or use the toggle to show them side by side. They
   share one set of codes (the usual way to code across interviews) while each transcript
   keeps its own highlights. Each tab has an x to remove that transcript.
-
-### 2026-06-29
 - Delete a whole turn from the transcript. Each turn now has a trash button next to the
   edit button; use it to drop turns the speech-to-text got wrong. The codes and comments
   on that turn are removed with it.

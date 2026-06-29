@@ -6,6 +6,9 @@
 import { html, useState } from "./h.js";
 import { actions } from "../store.js";
 import { codeFrequency } from "../model/codings.js";
+import { getLiveSelection, clearLiveSelection } from "./TranscriptView.js";
+
+const isNarrow = () => typeof window !== "undefined" && window.matchMedia("(max-width: 720px)").matches;
 
 function childrenOf(codes, parentId) {
   return codes.filter((c) => c.parentId === parentId).sort((a, b) => a.order - b.order);
@@ -28,8 +31,18 @@ function CodeRow({ code, codes, freq, ui, depth }) {
         onDragStart=${(e) => { e.dataTransfer.setData("text/code-id", code.id); e.stopPropagation(); }}
         onDragOver=${(e) => e.preventDefault()}
         onDrop=${(e) => { e.preventDefault(); e.stopPropagation(); const id = e.dataTransfer.getData("text/code-id"); if (id) actions.nestCode(id, code.id); }}
-        onClick=${() => actions.selectCode(code.id)}
-        title="Click to select · drag onto another code to nest"
+        onClick=${() => {
+          const sel = getLiveSelection();
+          if (sel) {
+            actions.applyCode(sel, code.id);
+            actions.selectCode(code.id);
+            clearLiveSelection();
+            if (isNarrow()) actions.closeMobilePanel();
+          } else {
+            actions.selectCode(code.id);
+          }
+        }}
+        title="Click to select · with transcript text selected, click to code it · drag onto another code to nest"
       >
         <input class="swatch" type="color" value=${code.color}
           onClick=${(e) => e.stopPropagation()}
@@ -43,8 +56,8 @@ function CodeRow({ code, codes, freq, ui, depth }) {
           : html`<span class="cname" onDblClick=${(e) => { e.stopPropagation(); setEditing(true); }}>${code.name}</span>`}
         <span class="cfreq" title="codings using this code">${freq[code.id] || 0}</span>
         <span class="crow-actions" onClick=${(e) => e.stopPropagation()}>
-          <button title="filter transcript to this code" class=${filtered ? "on" : ""}
-            onClick=${() => actions.setFilterCode(filtered ? null : code.id)}>⤓</button>
+          <button title="isolate this code's passages in the side panel" class=${filtered ? "on" : ""}
+            onClick=${() => { const next = filtered ? null : code.id; actions.setFilterCode(next); if (next && isNarrow()) actions.openMobilePanel("context"); }}>⤓</button>
           <button title="add subcode" onClick=${() => actions.addCode("New subcode", code.id)}>＋</button>
           <button title="move up" onClick=${() => actions.reorderCode(code.id, -1)}>↑</button>
           <button title="move down" onClick=${() => actions.reorderCode(code.id, 1)}>↓</button>
