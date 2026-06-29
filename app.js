@@ -92,7 +92,7 @@ function FileSyncControls({ file }) {
   return html`<div class="tb-group tb-file linked">
     ${file.needsPermission
       ? html`<button class="reconnect" title="Re-grant permission to keep saving to this file" onClick=${() => actions.reconnectAutosaveFile()}>Reconnect ${file.name}</button>`
-      : html`<span class="file-chip" title="Autosaving every change to this file">${saveIcon}<span>${file.name}</span></span>`}
+      : html`<span class="file-chip" title="Autosaving the whole project — every transcript, code, and note — to this file">${saveIcon}<span>${file.name}</span></span>`}
     <button class="ghost" title="Stop autosaving to the file (work stays in the browser)" onClick=${() => actions.unlinkAutosaveFile()}>✕</button>
   </div>`;
 }
