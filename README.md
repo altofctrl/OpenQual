@@ -51,7 +51,7 @@ between machines. Deploying a new version of the site never touches your stored 
 
 ## Changelog
 
-### Unreleased
+### 2026-06-29
 - Delete a whole turn from the transcript. Each turn now has a trash button next to the
   edit button; use it to drop turns the speech-to-text got wrong. The codes and comments
   on that turn are removed with it.
