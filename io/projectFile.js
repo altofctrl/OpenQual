@@ -23,9 +23,14 @@ export function downloadProject(project) {
   URL.revokeObjectURL(url);
 }
 
-// Parse + validate an uploaded project file. Returns { ok, project, errors }.
-export async function loadProjectFromFile(file) {
-  const text = await file.text();
+// File name used for downloads and the "autosave to file" picker.
+export function suggestedFileName(project) {
+  const safe = (project.project.title || "project").replace(/[^\w.-]+/g, "_");
+  return `${safe}.openqual.json`;
+}
+
+// Parse + validate project JSON text. Returns { ok, project, errors }.
+export function loadProjectFromText(text) {
   let parsed;
   try {
     parsed = JSON.parse(text);
@@ -35,4 +40,9 @@ export async function loadProjectFromFile(file) {
   if (!Array.isArray(parsed.unanchored)) parsed.unanchored = []; // tolerate older files
   const v = validateProject(parsed);
   return { ok: v.ok, project: v.ok ? parsed : null, errors: v.errors };
+}
+
+// Parse + validate an uploaded project file. Returns { ok, project, errors }.
+export async function loadProjectFromFile(file) {
+  return loadProjectFromText(await file.text());
 }

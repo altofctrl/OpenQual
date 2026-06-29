@@ -24,8 +24,72 @@ const tabIcons = {
   transcript: ico(html`<path d="M4 6h16M4 12h16M4 18h10"/>`),
   notes: ico(html`<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/>`),
 };
+const smallIco = (children) => html`<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${children}</svg>`;
+const layoutIcons = {
+  split: smallIco(html`<rect x="3" y="4" width="7" height="16" rx="1"/><rect x="14" y="4" width="7" height="16" rx="1"/>`),
+  tabs: smallIco(html`<rect x="3" y="6" width="18" height="14" rx="1"/><path d="M3 6l4-2h4l2 2"/>`),
+};
+const saveIcon = smallIco(html`<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/>`);
 
-function TopBar({ project, ui, settings }) {
+// Centre column: a tab strip of open transcripts plus a tabbed / side-by-side toggle.
+// All transcripts share the one project code tree (the qualitative-coding convention);
+// each transcript keeps its own codings because codings anchor to its own segments.
+function TranscriptArea({ project, ui }) {
+  const docs = project.documents;
+  // Tab chrome only earns its keep with more than one transcript; the common single-doc
+  // (and empty) case renders the transcript straight, as before.
+  if (docs.length < 2) return html`<div class="tx-single"><${TranscriptView} project=${project} ui=${ui} doc=${actions.activeDoc()} /></div>`;
+  const active = actions.activeDoc();
+  const isNarrow = typeof window !== "undefined" && window.matchMedia("(max-width: 720px)").matches;
+  const split = ui.transcriptLayout === "split" && docs.length > 1 && !isNarrow;
+  return html`
+    <div class="tx-area">
+      <div class="tx-tabs">
+        <div class="tx-tablist" role="tablist">
+          ${docs.map((d) => html`
+            <button class="tx-tab ${d.id === active?.id ? "active" : ""}" key=${d.id} role="tab"
+              onClick=${() => actions.setActiveDocument(d.id)} title=${d.title}>
+              <span class="tx-tabname">${d.title}</span>
+              <span class="tx-tabx" title="remove this transcript"
+                onClick=${(e) => { e.stopPropagation(); actions.deleteDocument(d.id); }}>✕</span>
+            </button>`)}
+        </div>
+        ${docs.length > 1 ? html`
+          <button class="tx-layout" title=${split ? "Show one transcript at a time" : "Show transcripts side by side"}
+            onClick=${() => actions.setTranscriptLayout(split ? "tabs" : "split")}>
+            ${split ? layoutIcons.tabs : layoutIcons.split}<span>${split ? "Tabbed" : "Side by side"}</span>
+          </button>` : null}
+      </div>
+      ${split
+        ? html`<div class="tx-split">
+            ${docs.map((d) => html`<div class="tx-col" key=${d.id}>
+              <div class="tx-colhead" title=${d.title}>${d.title}</div>
+              <div class="tx-colbody"><${TranscriptView} project=${project} ui=${ui} doc=${d} /></div>
+            </div>`)}
+          </div>`
+        : html`<div class="tx-single"><${TranscriptView} project=${project} ui=${ui} doc=${active} /></div>`}
+    </div>`;
+}
+
+// Top-bar control for "autosave to a local file". Hidden entirely on browsers without
+// the File System Access API — there the localStorage autosave + export reminder stand in.
+function FileSyncControls({ file }) {
+  if (!file || !file.supported) return null;
+  if (!file.name) {
+    return html`<div class="tb-group tb-file">
+      <button title="Autosave every change to a file on your computer" onClick=${() => actions.linkAutosaveFile()}>${saveIcon}<span>Autosave to file…</span></button>
+      <button title="Open a project file and autosave back into it" onClick=${() => actions.openAutosaveFile()}>Open file…</button>
+    </div>`;
+  }
+  return html`<div class="tb-group tb-file linked">
+    ${file.needsPermission
+      ? html`<button class="reconnect" title="Re-grant permission to keep saving to this file" onClick=${() => actions.reconnectAutosaveFile()}>Reconnect ${file.name}</button>`
+      : html`<span class="file-chip" title="Autosaving every change to this file">${saveIcon}<span>${file.name}</span></span>`}
+    <button class="ghost" title="Stop autosaving to the file (work stays in the browser)" onClick=${() => actions.unlinkAutosaveFile()}>✕</button>
+  </div>`;
+}
+
+function TopBar({ project, ui, settings, file }) {
   const saved = useStoreSavedLabel();
   const [menuOpen, setMenuOpen] = useState(false);
   const pick = (accept, cb) => {
@@ -52,6 +116,7 @@ function TopBar({ project, ui, settings }) {
           <button onClick=${() => actions.setFontSize(ui.fontSize - 1)} title="smaller text">A−</button>
           <button onClick=${() => actions.setFontSize(ui.fontSize + 1)} title="larger text">A+</button>
         </div>
+        <${FileSyncControls} file=${file} />
         <div class="tb-group">
           <button onClick=${() => actions.exportProject()}>Export</button>
           <button onClick=${() => pick(".json,application/json", (f) => actions.importProjectFile(f))}>Import</button>
@@ -155,13 +220,13 @@ function App() {
 
   return html`
     <div class="app ${ui.hidePanels ? "focus" : ""}">
-      <${TopBar} project=${project} ui=${ui} settings=${settings} />
+      <${TopBar} project=${project} ui=${ui} settings=${settings} file=${state.file} />
       <main class="columns">
         ${!ui.hidePanels ? html`<aside class="col-left"><${CodeTree} project=${project} ui=${ui} /></aside>` : null}
         <section class="col-centre">
           ${ui.view === "distribution"
-            ? html`<${Distribution} project=${project} />`
-            : html`<${TranscriptView} project=${project} ui=${ui} />`}
+            ? html`<div class="tx-scroll"><${Distribution} project=${project} /></div>`
+            : html`<${TranscriptArea} project=${project} ui=${ui} />`}
         </section>
         ${!ui.hidePanels ? html`<aside class="col-right"><${ContextPanel} project=${project} ui=${ui} /></aside>` : null}
       </main>

@@ -39,7 +39,38 @@ label.ctx-label { display: block; font-size: 12px; color: var(--muted); margin: 
 .app.focus .columns { grid-template-columns: 1fr; }
 .col-left, .col-right { background: var(--panel); border-right: 1px solid var(--line); overflow-y: auto; }
 .col-right { border-right: none; border-left: 1px solid var(--line); }
-.col-centre { overflow-y: auto; min-width: 0; }
+.col-centre { min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+/* the centre column delegates scrolling to its content so transcript tabs can stay put
+   and side-by-side columns can scroll independently */
+.tx-scroll { flex: 1; min-height: 0; overflow-y: auto; }
+.tx-area { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.tx-single { flex: 1; min-height: 0; overflow-y: auto; }
+
+/* transcript tab strip */
+.tx-tabs { flex: none; display: flex; align-items: stretch; gap: 6px; padding: 6px 8px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.tx-tablist { display: flex; gap: 4px; overflow-x: auto; flex: 1; scrollbar-width: thin; }
+.tx-tab { display: inline-flex; align-items: center; gap: 6px; max-width: 220px; border-radius: 8px 8px 0 0; border: 1px solid transparent; background: transparent; color: var(--muted); white-space: nowrap; }
+.tx-tab:hover { background: #f1f1ef; }
+.tx-tab.active { background: var(--accent-soft); color: var(--accent); border-color: #c7d2f7; }
+.tx-tabname { overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
+.tx-tabx { opacity: 0; font-size: 11px; padding: 0 2px; border-radius: 4px; }
+.tx-tab:hover .tx-tabx, .tx-tab.active .tx-tabx { opacity: 0.7; }
+.tx-tabx:hover { opacity: 1; background: #fde8e8; color: #b33; }
+.tx-layout { flex: none; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+
+/* side-by-side transcripts */
+.tx-split { flex: 1; min-height: 0; display: flex; }
+.tx-col { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.tx-col + .tx-col { border-left: 1px solid var(--line); }
+.tx-colhead { flex: none; font-weight: 600; font-size: 12px; color: var(--muted); padding: 6px 14px; border-bottom: 1px solid var(--line); background: var(--bg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tx-colbody { flex: 1; min-height: 0; overflow-y: auto; }
+
+/* autosave-to-file control in the top bar */
+.tb-file { align-items: center; }
+.tb-file .file-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: #2a7d4f; background: #e8f6ee; border: 1px solid #bfe6cf; border-radius: 6px; padding: 4px 8px; max-width: 220px; }
+.tb-file .file-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tb-file button svg, .file-chip svg { display: block; }
+.tb-file .reconnect { color: #8a5a00; background: var(--warn-bg); border-color: var(--warn-line); }
 
 /* top bar */
 .topbar { display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
@@ -214,6 +245,13 @@ table.dist th { color: var(--muted); font-weight: 600; }
     color: var(--muted); display: inline-flex;
   }
   .filter-bar { flex-wrap: wrap; }
+
+  /* Transcript tabs: scrollable within the strip only (page stays vertical). Mobile is
+     tabs-only — side-by-side needs width a phone doesn't have. */
+  .tx-single, .tx-scroll, .tx-colbody { -webkit-overflow-scrolling: touch; }
+  .tx-layout { display: none; }
+  .tx-tab { padding: 8px 10px; }
+  .tx-tabx { opacity: 0.7; }              /* always tappable, no hover on touch */
 
   /* Fixed bottom tab bar — icon over label, like a native app. */
   .mobilebar {

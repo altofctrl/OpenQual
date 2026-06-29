@@ -156,8 +156,8 @@ export function SpanPopover({ data, project, onClose }) {
     </div>`;
 }
 
-export function TranscriptView({ project, ui }) {
-  const doc = actions.activeDoc();
+export function TranscriptView({ project, ui, doc: docProp }) {
+  const doc = docProp || actions.activeDoc();
   if (!doc) {
     return html`<div class="transcript empty-state">
       <h2>No transcript loaded</h2>

@@ -10,7 +10,8 @@ import { makeCoding, makeComment, hasCoding } from "./model/codings.js";
 import { remapSegment } from "./model/remap.js";
 import { parseVtt } from "./ingest/vtt.js";
 import { normaliseText } from "./ingest/text-llm.js";
-import { downloadProject, loadProjectFromFile, serialiseProject } from "./io/projectFile.js";
+import { downloadProject, loadProjectFromFile, loadProjectFromText, serialiseProject, suggestedFileName } from "./io/projectFile.js";
+import * as fileSync from "./io/fileSync.js";
 
 const PROJECT_KEY = "openqual.project";
 const SETTINGS_KEY = "openqual.settings";
@@ -84,12 +85,15 @@ const store = {
       hidePanels: false,
       fontSize: 16,
       view: "transcript",       // "transcript" | "distribution"
+      transcriptLayout: "tabs", // "tabs" | "split" — single active doc, or all docs side by side
       settingsOpen: false,
       mobilePanel: null,        // null | "codes" | "context" — which bottom sheet is open (mobile)
       status: "",               // transient status line (e.g. "Ingesting…")
     },
     savedAt: null,
     lastExportedAt: loadLastExportedAt(),
+    // Live autosave-to-file (File System Access API). name is set once a file is linked.
+    file: { name: null, needsPermission: false, supported: fileSync.fsSupported },
   },
   listeners: new Set(),
 
@@ -117,20 +121,41 @@ const store = {
   },
 };
 
-// debounced autosave to localStorage (section 8: persistent autosave)
+function setFileState(patch) {
+  store.state = { ...store.state, file: { ...store.state.file, ...patch } };
+  store.emit();
+}
+
+// Write the current project to the linked file, reflecting permission state in the UI.
+async function fileAutosave(serialised) {
+  if (!fileSync.linkedName()) return;
+  const res = await fileSync.writeProject(serialised);
+  setFileState({ name: fileSync.linkedName(), needsPermission: res === "no-perm" });
+}
+
+// debounced autosave to localStorage (section 8: persistent autosave) and, when a file
+// is linked, to that file on disk too (File System Access API).
 let autosaveTimer = null;
 function scheduleAutosave() {
   clearTimeout(autosaveTimer);
   autosaveTimer = setTimeout(() => {
+    const serialised = serialiseProject(store.state.project);
     try {
-      localStorage.setItem(PROJECT_KEY, serialiseProject(store.state.project));
+      localStorage.setItem(PROJECT_KEY, serialised);
       store.state = { ...store.state, savedAt: new Date().toISOString() };
       store.emit();
     } catch (e) {
       console.error("autosave failed", e);
     }
+    fileAutosave(serialised);
   }, 600);
 }
+
+// On boot, reconnect a file linked in a previous session (permission re-grant happens
+// lazily on the first write, surfaced as a "Reconnect" affordance if needed).
+fileSync.restoreHandle().then((name) => {
+  if (name) setFileState({ name, needsPermission: true });
+});
 
 // ---- hook ----------------------------------------------------------------------
 
@@ -199,6 +224,25 @@ export const actions = {
   },
 
   setActiveDocument(id) { store.patchUi({ activeDocumentId: id, filterCodeId: null, editingSegmentId: null }); },
+
+  // Remove a whole transcript (document) and the codings/comments anchored in it. The
+  // shared code tree is left intact — codes are a project-wide codebook (section 8).
+  deleteDocument(id) {
+    const p = store.state.project;
+    const doc = p.documents.find((d) => d.id === id);
+    if (!doc) return;
+    if (!confirm(`Remove transcript "${doc.title}"? Its turns, codings, and comments are deleted. Your codes stay.`)) return;
+    const segIds = new Set(doc.segments.map((s) => s.id));
+    const documents = p.documents.filter((d) => d.id !== id);
+    store.setProject({
+      ...p,
+      documents,
+      codings: p.codings.filter((c) => !segIds.has(c.segmentId)),
+      comments: p.comments.filter((c) => !segIds.has(c.segmentId)),
+      unanchored: (p.unanchored || []).filter((o) => !segIds.has(o.segmentId)),
+    });
+    if (store.state.ui.activeDocumentId === id) store.patchUi({ activeDocumentId: documents[0]?.id || null });
+  },
 
   // ---- code tree ----
   addCode(name = "New code", parentId = null) {
@@ -393,6 +437,53 @@ export const actions = {
     store.patchUi({ activeDocumentId: res.project.documents[0]?.id || null, selectedCodeId: null, filterCodeId: null });
   },
 
+  // ---- autosave to a local file (File System Access API) ----
+  _fileUnsupportedNote() {
+    alert("This browser can't autosave to a file (try Chrome, Edge, or Brave).\n\nYour work is still autosaved inside this browser — use Export for a portable backup.");
+  },
+
+  // Pick a new .json and start writing every change to it.
+  async linkAutosaveFile() {
+    if (!fileSync.fsSupported) return this._fileUnsupportedNote();
+    try {
+      const name = await fileSync.pickSaveFile(suggestedFileName(store.state.project));
+      const res = await fileSync.writeProject(serialiseProject(store.state.project));
+      setFileState({ name, needsPermission: res === "no-perm" });
+    } catch (e) {
+      if (e.name !== "AbortError") alert(`Couldn't link file: ${e.message}`);
+    }
+  },
+
+  // Open an existing project file and keep autosaving back into it.
+  async openAutosaveFile() {
+    if (!fileSync.fsSupported) return this._fileUnsupportedNote();
+    try {
+      const { name, text } = await fileSync.pickOpenFile();
+      const res = loadProjectFromText(text);
+      if (!res.ok) { alert(`Not a valid OpenQual file:\n${res.errors.join("\n")}`); return; }
+      store.setProject(res.project, { autosave: false });
+      store.patchUi({ activeDocumentId: res.project.documents[0]?.id || null, selectedCodeId: null, filterCodeId: null });
+      await fileSync.writeProject(serialiseProject(res.project)); // confirm write access
+      setFileState({ name, needsPermission: false });
+    } catch (e) {
+      if (e.name !== "AbortError") alert(`Couldn't open file: ${e.message}`);
+    }
+  },
+
+  // Re-grant write permission to a file linked in a previous session (needs a click).
+  async reconnectAutosaveFile() {
+    const ok = await fileSync.ensureWritable(true);
+    if (ok) {
+      const res = await fileSync.writeProject(serialiseProject(store.state.project));
+      setFileState({ name: fileSync.linkedName(), needsPermission: res !== "ok" });
+    }
+  },
+
+  async unlinkAutosaveFile() {
+    await fileSync.unlink();
+    setFileState({ name: null, needsPermission: false });
+  },
+
   // ---- settings ----
   saveSettings(settings) { store.setSettings(settings); store.patchUi({ settingsOpen: false }); },
   openSettings() { store.patchUi({ settingsOpen: true }); },
@@ -402,6 +493,7 @@ export const actions = {
   toggleHidePanels() { store.patchUi({ hidePanels: !store.state.ui.hidePanels }); },
   setFontSize(px) { store.patchUi({ fontSize: Math.max(11, Math.min(28, px)) }); },
   setView(view) { store.patchUi({ view, mobilePanel: null }); },
+  setTranscriptLayout(layout) { store.patchUi({ transcriptLayout: layout }); },
 
   // ---- mobile bottom sheets (codes / context) ----
   openMobilePanel(name) { store.patchUi({ mobilePanel: store.state.ui.mobilePanel === name ? null : name }); },

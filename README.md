@@ -51,6 +51,18 @@ between machines. Deploying a new version of the site never touches your stored 
 
 ## Changelog
 
+### 2026-06-29 (later)
+- Autosave to a local file. Pick a `.json` once with "Autosave to file" and every change
+  is written straight to that file on disk, not just the browser. "Open file" opens an
+  existing project and keeps saving back into it. Reopen the site and it reconnects to the
+  same file after a one-click permission grant. This uses the browser's File System Access
+  API, so it works in Chrome, Edge, and Brave; Firefox and Safari fall back to the usual
+  in-browser autosave and the export reminder.
+- Work on several transcripts at once. Load more than one and they appear as tabs above
+  the transcript; switch between them, or use the toggle to show them side by side. They
+  share one set of codes (the usual way to code across interviews) while each transcript
+  keeps its own highlights. Each tab has an x to remove that transcript.
+
 ### 2026-06-29
 - Delete a whole turn from the transcript. Each turn now has a trash button next to the
   edit button; use it to drop turns the speech-to-text got wrong. The codes and comments
