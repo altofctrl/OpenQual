@@ -53,7 +53,8 @@ between machines. Deploying a new version of the site never touches your stored 
 
 ### 2026-06-29
 - Apply a code by clicking it. Select text in the transcript, then click a code in the
-  Codes list to code the selection (the floating toolbar still works too).
+  Codes list to code the selection (the floating toolbar still works too). The turn
+  flashes to confirm the code went on.
 - Isolate a code into the side panel. The isolate button (the down arrow on a code) now
   lists that code's passages in the right-hand panel and leaves the transcript in view;
   clicking a passage jumps to its turn. On a phone the list opens in the Notes sheet.
@@ -65,10 +66,10 @@ between machines. Deploying a new version of the site never touches your stored 
   same file after a one-click permission grant. This uses the browser's File System Access
   API, so it works in Chrome, Edge, and Brave; Firefox and Safari fall back to the usual
   in-browser autosave and the export reminder.
-- Work on several transcripts at once. Load more than one and they appear as tabs above
-  the transcript; switch between them, or use the toggle to show them side by side. They
-  share one set of codes (the usual way to code across interviews) while each transcript
-  keeps its own highlights. Each tab has an x to remove that transcript.
+- Work on several transcripts at once. Once a transcript is loaded a tab strip appears
+  with a + button to add more; switch between tabs, or use the toggle to show them side by
+  side. They share one set of codes (the usual way to code across interviews) while each
+  transcript keeps its own highlights. Each tab has an x to remove that transcript.
 - Delete a whole turn from the transcript. Each turn now has a trash button next to the
   edit button; use it to drop turns the speech-to-text got wrong. The codes and comments
   on that turn are removed with it.

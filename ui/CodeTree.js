@@ -6,7 +6,7 @@
 import { html, useState } from "./h.js";
 import { actions } from "../store.js";
 import { codeFrequency } from "../model/codings.js";
-import { getLiveSelection, clearLiveSelection } from "./TranscriptView.js";
+import { getLiveSelection, clearLiveSelection, flashSegment } from "./TranscriptView.js";
 
 const isNarrow = () => typeof window !== "undefined" && window.matchMedia("(max-width: 720px)").matches;
 
@@ -36,6 +36,7 @@ function CodeRow({ code, codes, freq, ui, depth }) {
           if (sel) {
             actions.applyCode(sel, code.id);
             actions.selectCode(code.id);
+            flashSegment(sel.segmentId);
             clearLiveSelection();
             if (isNarrow()) actions.closeMobilePanel();
           } else {

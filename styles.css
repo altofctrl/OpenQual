@@ -56,6 +56,8 @@ label.ctx-label { display: block; font-size: 12px; color: var(--muted); margin: 
 .tx-tabx { opacity: 0; font-size: 11px; padding: 0 2px; border-radius: 4px; }
 .tx-tab:hover .tx-tabx, .tx-tab.active .tx-tabx { opacity: 0.7; }
 .tx-tabx:hover { opacity: 1; background: #fde8e8; color: #b33; }
+.tx-add { flex: none; align-self: center; padding: 4px 9px; border-radius: 6px; color: var(--muted); font-size: 15px; line-height: 1; }
+.tx-add:hover { color: var(--accent); border-color: #c7d2f7; }
 .tx-layout { flex: none; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
 
 /* side-by-side transcripts */

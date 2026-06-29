@@ -36,12 +36,19 @@ const saveIcon = smallIco(html`<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h1
 // each transcript keeps its own codings because codings anchor to its own segments.
 function TranscriptArea({ project, ui }) {
   const docs = project.documents;
-  // Tab chrome only earns its keep with more than one transcript; the common single-doc
-  // (and empty) case renders the transcript straight, as before.
-  if (docs.length < 2) return html`<div class="tx-single"><${TranscriptView} project=${project} ui=${ui} doc=${actions.activeDoc()} /></div>`;
+  // Nothing loaded yet → the dropzone empty state.
+  if (docs.length === 0) return html`<div class="tx-single"><${TranscriptView} project=${project} ui=${ui} doc=${null} /></div>`;
   const active = actions.activeDoc();
   const isNarrow = typeof window !== "undefined" && window.matchMedia("(max-width: 720px)").matches;
   const split = ui.transcriptLayout === "split" && docs.length > 1 && !isNarrow;
+  // "+ Add" loads another transcript so the multi-transcript feature is discoverable
+  // from the tab strip itself, not just the menu.
+  const addTranscript = () => {
+    const input = document.createElement("input");
+    input.type = "file"; input.accept = ".vtt,text/vtt";
+    input.onchange = () => input.files[0] && actions.ingestVttFile(input.files[0]);
+    input.click();
+  };
   return html`
     <div class="tx-area">
       <div class="tx-tabs">
@@ -53,6 +60,7 @@ function TranscriptArea({ project, ui }) {
               <span class="tx-tabx" title="remove this transcript"
                 onClick=${(e) => { e.stopPropagation(); actions.deleteDocument(d.id); }}>✕</span>
             </button>`)}
+          <button class="tx-add" title="Add another transcript" onClick=${addTranscript}>＋</button>
         </div>
         ${docs.length > 1 ? html`
           <button class="tx-layout" title=${split ? "Show one transcript at a time" : "Show transcripts side by side"}

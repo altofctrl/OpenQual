@@ -144,6 +144,13 @@ function showToolbar(rect, selection) {
 export function getLiveSelection() { return window.__openqualSelection || null; }
 export function clearLiveSelection() { window.__openqualSelection = null; if (toolbarSetter) toolbarSetter(null); }
 
+// Briefly highlight a turn — used to confirm a code was just applied to its text.
+export function flashSegment(segId) {
+  if (typeof document === "undefined") return;
+  const el = document.getElementById(`seg-${segId}`);
+  if (el) { el.classList.add("seg-flash"); setTimeout(() => el.classList.remove("seg-flash"), 1000); }
+}
+
 // --- coded-span popover (list codes, remove, comment) ---------------------------
 let popoverSetter = null;
 export function registerPopover(setter) { popoverSetter = setter; }
@@ -159,12 +166,12 @@ export function SelectionToolbar({ data, project, onClose }) {
     <div class="floating toolbar" style=${{ left: data.x, top: data.y }} onMouseDown=${(e) => e.stopPropagation()}>
       <span class="tb-label">Apply:</span>
       ${project.codes.length === 0
-        ? html`<button onClick=${() => { const c = actions.addCode("New code", null); actions.applyCode(selection, c.id); onClose(); }}>＋ New code</button>`
-        : html`<select onChange=${(e) => { if (e.target.value) { actions.applyCode(selection, e.target.value); onClose(); } }}>
+        ? html`<button onClick=${() => { const c = actions.addCode("New code", null); actions.applyCode(selection, c.id); flashSegment(selection.segmentId); onClose(); }}>＋ New code</button>`
+        : html`<select onChange=${(e) => { if (e.target.value) { actions.applyCode(selection, e.target.value); flashSegment(selection.segmentId); onClose(); } }}>
             <option value="">— pick code —</option>
             ${project.codes.map((c) => html`<option value=${c.id}>${c.name}</option>`)}
           </select>`}
-      <button title="create a code and apply it" onClick=${() => { const name = prompt("New code name:"); if (name) { const c = actions.addCode(name, null); actions.applyCode(selection, c.id); } onClose(); }}>＋ Code</button>
+      <button title="create a code and apply it" onClick=${() => { const name = prompt("New code name:"); if (name) { const c = actions.addCode(name, null); actions.applyCode(selection, c.id); flashSegment(selection.segmentId); } onClose(); }}>＋ Code</button>
       <button title="add a span comment" onClick=${() => { actions.addComment(selection, ""); onClose(); }}>💬 Comment</button>
       ${project.codes.length > 0 ? html`<span class="tb-hint">or click a code →</span>` : null}
       <button class="ghost" onClick=${onClose}>✕</button>
